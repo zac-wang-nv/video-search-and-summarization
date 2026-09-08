@@ -22,6 +22,12 @@ image:
   tag: "develop-latest"
   pullPolicy: IfNotPresent
 replicas: 1
+# Deployment update strategy. RT-VLM holds most of one GPU, so the default
+# RollingUpdate (one surge pod alongside the old one) cannot start the new pod
+# when the Deployment is pinned to a single GPU (NVIDIA_VISIBLE_DEVICES or a
+# one-GPU node): the new pod fails to load the VLM until the old one is gone.
+# Set `type: Recreate` for such deployments; leave empty for the k8s default.
+strategy: {}
 # Allow the initial RT-VLM image pull and model startup to complete before
 # Kubernetes reports the Deployment as stalled. Kubernetes defaults this to
 # 600 seconds when it is omitted, which is too short on a cold node.
