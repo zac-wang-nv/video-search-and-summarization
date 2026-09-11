@@ -97,6 +97,21 @@ def _routes(sensors: list[dict], streams: dict[str, list[dict]]) -> dict[str, An
     return out
 
 
+@pytest.mark.asyncio
+async def test_vios_http_honors_standard_proxy_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """OpenShell routes approved hosts through HTTP_PROXY instead of local DNS."""
+    session_kwargs: dict[str, object] = {}
+
+    def client_session(**kwargs: object) -> _Session:
+        session_kwargs.update(kwargs)
+        return _Session({"/sensor/list": []}, [])
+
+    monkeypatch.setattr(vios.aiohttp, "ClientSession", client_session)
+
+    assert await vios.list_sensors(VST) == []
+    assert session_kwargs["trust_env"] is True
+
+
 # ---------------------------------------------------------------- provenance
 
 
