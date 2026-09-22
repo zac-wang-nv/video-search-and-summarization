@@ -16,24 +16,34 @@ Human contributor guidance — licensing, DCO, file headers — is in
 ### Setup
 
 ```bash
-VSS_REPO_ROOT="${VSS_REPO_ROOT:-$HOME/video-search-and-summarization}"
-vss() { uv run --project "${VSS_REPO_ROOT}/services/agent" --no-dev --extra cli vss "$@"; }
+if ! command -v vss >/dev/null; then
+  if [ -x /usr/local/bin/nemoclaw-start ]; then
+    echo "Baked VSS CLI missing from the harness image" >&2; exit 1
+  fi
+  VSS_REPO_ROOT="${VSS_REPO_ROOT:-$HOME/video-search-and-summarization}"
+  vss() { uv run --project "${VSS_REPO_ROOT}/services/agent" --no-dev --extra cli vss "$@"; }
+fi
 vss --version
 ```
 
-A function rather than an alias — aliases are not expanded in non-interactive
-shells. **`--extra cli` is required**: without it the CLI is not installed and
+The OpenClaw harness image already installs the pinned CLI at
+`/usr/local/bin/vss` and exposes it through the `vss_cli` tool. Use that tool
+or executable. Do not clone a repository or install dependencies in the sandbox.
+If the baked executable is unavailable, report an image problem and stop.
+
+The fallback function is for a development checkout without an installed CLI.
+**`--extra cli` is required** there: without it the CLI is not installed and
 there is no `vss` to run. **`--no-dev` matters too**: it is what keeps the
 environment to the CLI's runtime — 256 MB with no `nvidia-nat` — where the
 default group pulls the agent stack and 630 MB you have no use for.
 
-Use that checkout's `vss` — not one from `PATH`, and not through `docker exec`
-or `kubectl exec`.
+Do not invoke it through `docker exec` or `kubectl exec`.
 
 ### No deployment yet?
 
 The CLI talks to a **running** stack; it does not stand one up. If there is
-nothing to configure against:
+nothing to configure against, report the missing deployment. An operation or
+video question does not authorize deploying services. When deployment is requested:
 
 [`/vss-build-vision-ai`](skills/vss-build-vision-ai/SKILL.md) takes the
 capabilities you name — dense captioning, detection, search, alerting,
@@ -107,4 +117,3 @@ than carrying its own copy.
 |------|--------------------|-------|
 | `vss` CLI internals | changing the CLI or its library | [`services/agent/packages/vss_cli/AGENTS.md`](services/agent/packages/vss_cli/AGENTS.md) |
 | Video Analytics API | working on the analytics service | [`services/analytics/video-analytics-api/AGENTS.md`](services/analytics/video-analytics-api/AGENTS.md) |
-

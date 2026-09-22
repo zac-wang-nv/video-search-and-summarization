@@ -16,7 +16,7 @@ metadata:
 # Ask a VSS video question
 
 Answer from the cheapest grounded source that can satisfy the question. For a
-running VSS deployment, use the project-local `vss` CLI. Do not call an
+running VSS deployment, use the installed `vss` CLI. Do not call an
 OpenAI-compatible `/chat/completions` endpoint directly or fall back to raw REST
 when a CLI command fails.
 
@@ -48,9 +48,20 @@ vss configure check
 
 ### Bootstrap the CLI once
 
+The OpenClaw harness image already provides the pinned `vss` executable and
+the `vss_cli` tool. Prefer that tool; pass the arguments after `vss` as its
+`args` array. Do not clone, install, or deploy anything to answer a video
+question. If the image's CLI is missing, report the image problem and stop.
+Only a development checkout without a packaged CLI needs the fallback below.
+
 ```bash
-VSS_REPO_ROOT="${VSS_REPO_ROOT:-$HOME/video-search-and-summarization}"
-vss() { uv run --project "${VSS_REPO_ROOT}/services/agent" --no-dev --extra cli vss "$@"; }
+if ! command -v vss >/dev/null; then
+  if [ -x /usr/local/bin/nemoclaw-start ]; then
+    echo "Baked VSS CLI missing from the harness image" >&2; exit 1
+  fi
+  VSS_REPO_ROOT="${VSS_REPO_ROOT:-$HOME/video-search-and-summarization}"
+  vss() { uv run --project "${VSS_REPO_ROOT}/services/agent" --no-dev --extra cli vss "$@"; }
+fi
 vss --version
 ```
 
@@ -129,10 +140,17 @@ grounded before introspection returned.
 For one fresh inspection, use **`vss vlm run`** — never a hand-built VLM request.
 
 **Path A — URL or local file** (default when the user or search handoff provides
-media directly; skip the sensor check):
+media directly; skip sensor registration, ingestion, and the sensor check):
 
 ```bash
-VSS=(uv run --project "${VSS_REPO_ROOT:-$HOME/video-search-and-summarization}/services/agent" --no-dev --extra cli vss)
+VSS=(vss)
+if ! command -v vss >/dev/null; then
+  if [ -x /usr/local/bin/nemoclaw-start ]; then
+    echo "Baked VSS CLI missing from the harness image" >&2; exit 1
+  fi
+  # Development checkout only; the harness image already has vss on PATH.
+  VSS=(uv run --project "${VSS_REPO_ROOT:-$HOME/video-search-and-summarization}/services/agent" --no-dev --extra cli vss)
+fi
 # Exit 6 means the answer was produced but could not be written to memory.
 check_rc() { [ "$1" -eq 0 ] || [ "$1" -eq 6 ] || { echo "vss vlm run failed (exit $1)" >&2; exit "$1"; }; }
 

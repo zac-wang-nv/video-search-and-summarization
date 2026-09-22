@@ -3,10 +3,9 @@
 ## Sandbox host alias
 
 Inside the openshell/nemoclaw sandbox, `HOST_IP` is the sandbox host
-alias — the only hostname the egress policy whitelists for VSS backend
-ports. Skills should curl `${HOST_IP}` for every runtime call — never
-`localhost` and never a literal IP — so the same skill works in-sandbox
-and on bare metal.
+alias for Docker Compose host ports. It is not the endpoint for a Kubernetes
+deployment. For existing deployments, preserve the operator's origin from
+`ENV.md` and use the installed VSS CLI; no orchestrator check is required.
 
 `/sandbox/.bashrc` is root-owned and read-only in this sandbox, so
 `HOST_IP` is **not** persisted to a shell init file. Instead, the
@@ -215,47 +214,32 @@ healthy?" check, use:
 These are also robust to orchestrator restarts since container state lives
 in Docker, not in the orchestrator's process memory.
 
-## VSS CLI checkout
+## Installed VSS CLI
 
-Kubernetes deployments do not go through the orchestrator MCP. The skills
-that operate them (`vss-search-archive`, `vss-summarize-video`) run the
-project CLI directly — `uv run --project <checkout>/services/agent --no-dev
---extra cli vss` — against the Ingress origin in `VSS_PUBLIC_URL`. That
-needs `uv` and a checkout, both of which you can set up yourself: the
-egress policy already names GitHub for `git` and PyPI for `uv`. Do not ask
-the user to prepare anything on the host.
+The harness image installs `/usr/local/bin/vss` from the same pinned source as
+the packaged skills. OpenClaw's `vss_cli` tool calls that executable directly;
+pass subcommands and flags as its `args` array. Prefer it for VSS operations.
 
-Both commands are idempotent, so run them whenever the CLI is missing:
+For a shell invocation:
 
 ```bash
-command -v uv >/dev/null ||
-  pip install --user --break-system-packages uv
-
-VSS_REPO_ROOT="${VSS_REPO_ROOT:-$HOME/video-search-and-summarization}"
-test -d "${VSS_REPO_ROOT}/.git" ||
-  git clone -b develop \
-    https://github.com/NVIDIA-AI-Blueprints/video-search-and-summarization.git \
-    "${VSS_REPO_ROOT}"
+/usr/local/bin/vss --version
 ```
 
-`-b develop` is required. The default branch (`main`) predates the split
-into `packages/`, so `--extra cli` there fails with "Extra `cli` is not
-defined" — the `vss` executable does not exist on it. Keep the checkout at
-the skills' default location above unless you have a reason to move it;
-exporting `VSS_REPO_ROOT` is only needed for a checkout somewhere else.
+Do not clone a checkout, run `uv`, or install dependencies to use this image.
+Development-checkout instructions in a skill are for environments without a
+packaged CLI. If the baked executable fails or is missing, report the image
+problem and stop.
 
-After `pip install`, `uv` may not be on `PATH` in the shell that installed
-it — re-run the `ENV.md` exports rather than hunting for the binary. The
-first `uv run` resolves the whole dependency closure and can take several
-minutes; later ones are cached.
-
-Point the CLI at the deployment once, then re-run the same command after
-every ingestion, because the recorded index inventory is a snapshot:
+Inspect `vss configure show`. If the CLI has not recorded the operator's selected
+origin, configure the client once, preserving the origin exactly:
 
 ```bash
-uv run --project "${VSS_REPO_ROOT}/services/agent" --no-dev --extra cli \
-  vss configure --base-url "${VSS_PUBLIC_URL}"
+/usr/local/bin/vss configure --base-url "${VSS_PUBLIC_URL}"
 ```
+
+This does not deploy services. A supplied video URL uses `vss-ask-video` Path A;
+do not ingest it or register a sensor unless the request explicitly calls for it.
 
 If `VSS_PUBLIC_URL` is empty, stop and follow `ENV.md` "Empty
 VSS_PUBLIC_URL" — ask the user for the origin instead of guessing one.

@@ -10,7 +10,7 @@ If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out w
 
 Before doing anything else:
 
-1. Run every `export` in `ENV.md` to set the sandbox environment. The sandbox's `/sandbox/.bashrc` is root-owned read-only, so these can't be persisted to a shell init file — re-run every session. `ENV.md` is the single source of truth for these values; do not hardcode them anywhere else.
+1. Read `ENV.md` and preserve the environment supplied by the operator or harness. Its exports supply defaults only. The pinned VSS CLI is already installed: use `vss_cli` or `/usr/local/bin/vss`, without a checkout or dependency installation. A video question uses the existing deployment; do not run deployment bootstrap or orchestrator checks unless deployment was requested.
 2. Read `SOUL.md` — this is who you are
 3. Read `USER.md` — this is who you're helping
 4. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context

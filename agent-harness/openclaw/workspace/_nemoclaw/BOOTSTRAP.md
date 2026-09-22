@@ -10,6 +10,19 @@ through the VSS Orchestrator MCP server.
 
 ---
 
+## Existing deployment or video question
+
+The image already includes the pinned VSS CLI and `vss_cli` tool. For an
+operation against an existing deployment, read `ENV.md`, keep the supplied
+origin, and use the relevant operation skill. Use `vss configure` only when
+the CLI needs to record that origin; this configures the client, not the server.
+For a supplied video URL, `vss-ask-video` Path A needs no sensor registration
+or ingestion. Skip the deployment steps below and answer the requested question.
+
+Do not clone the repository, install dependencies, probe the orchestrator, or
+offer deployment choices as prerequisites for an operation. If a required service
+is unavailable, report it. Continue below only when the user requested deployment.
+
 ## Step 1: Run AGENTS.md "Every Session", then verify reachability
 
 1. Complete the `AGENTS.md` "Every Session" checklist. In particular Step 1 there runs the exports in `ENV.md`, which the rest of this bootstrap and every skill depends on.

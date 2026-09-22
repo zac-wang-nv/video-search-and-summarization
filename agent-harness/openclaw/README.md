@@ -85,8 +85,24 @@ Skills and the `vss` CLI come from one pinned commit of this repo (`VSS_REF`),
 so they always match. `vss` is installed from source because `nvidia-vss` is on
 no reachable index. The workspace files come from this directory.
 
+At runtime, use `vss_cli` or `/usr/local/bin/vss`; no checkout or installation
+is needed. The workspace preserves the operator's deployment origin and skips
+deployment bootstrap for operation requests. `OPENCLAW_CHILD_OOM_SCORE_ADJ=0`
+disables OpenClaw's optional write to the sandbox's read-only `/proc`.
+
 ```
 docker build -t <registry>/vss-harness-openclaw:<tag> agent-harness/openclaw
+```
+
+When changing a skill, set `--build-arg VSS_REF=<commit-with-the-skill-change>`
+so the image includes that change alongside the CLI from the same commit.
+
+Run the instruction regressions from the repository root. Supplying a locally
+cached image also executes the real CLI without network, GPU access, or a home
+checkout, and verifies the installed OpenClaw OOM-score switch:
+
+```bash
+VSS_TEST_IMAGE=<cached-image> python3 -m unittest discover -s agent-harness/openclaw/tests -v
 ```
 
 The eval harness's Provision panel does the same: it shows this Dockerfile,
